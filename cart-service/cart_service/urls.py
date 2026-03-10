@@ -16,6 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 from app.views import (
     CartCreate,
@@ -28,6 +29,9 @@ from app.views import (
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path('api/schema/', SpectacularAPIView.as_view(), name='api-schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='api-schema'), name='api-docs'),
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='api-schema'), name='api-redoc'),
     path("carts/", CartCreate.as_view()),
     path("carts/items/", AddCartItem.as_view()),
     path("carts/<int:customer_id>/", ViewCart.as_view()),
