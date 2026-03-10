@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="card" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;">
+  <div>
+    <h1>Books Catalog</h1>
+    <p style="margin-top: 8px;">View books, add to cart, and submit ratings from one page.</p>
+  </div>
+  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+    {% if session_user.id %}
+      <a class="btn secondary" style="text-decoration: none; display: inline-flex; align-items: center;" href="{% url 'view_cart' session_user.id %}">Open My Cart</a>
+    {% endif %}
+    {% if is_staff %}
+      <a class="btn" style="text-decoration: none; display: inline-flex; align-items: center;" href="{% url 'manage_books' %}">Staff Manage Books</a>
+    {% endif %}
+  </div>
+</section>
+
+<section style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+  {% for book in books %}
+    <article class="card" style="display: grid; gap: 12px;">
+      <div>
+        <h3>{{ book.title }}</h3>
+        <p style="margin-top: 6px;">Author: {{ book.author }}</p>
+      </div>
+
+      <div style="display: grid; gap: 4px; font-size: 0.92rem;">
+        <div><strong>Price:</strong> {{ book.price }}</div>
+        <div><strong>Promotion:</strong> {{ book.promotion_percent }}%</div>
+        <div><strong>After Discount:</strong> {{ book.discounted_price }}</div>
+        <div><strong>Stock:</strong> {{ book.stock }}</div>
+      </div>
+
+      {% if session_user.id and session_user.role == 'customer' %}
+        <form method="post" action="{% url 'add_to_cart' %}">
+          {% csrf_token %}
+          <input type="hidden" name="book_id" value="{{ book.id }}" />
+          <div>
+            <label for="qty_{{ book.id }}">Quantity</label>
+            <input id="qty_{{ book.id }}" type="number" name="quantity" min="1" value="1" required />
+          </div>
+          <button class="btn" type="submit">Add To Cart</button>
+        </form>
+
+        <form method="post" action="{% url 'rate_book' book.id %}">
+          {% csrf_token %}
+          <div>
+            <label for="score_{{ book.id }}">Your Score (1-5)</label>
+            <select id="score_{{ book.id }}" name="score" required>
+              <option value="5">5 - Excellent</option>
+              <option value="4">4 - Good</option>
+              <option value="3">3 - Okay</option>
+              <option value="2">2 - Weak</option>
+              <option value="1">1 - Bad</option>
+            </select>
+          </div>
+          <div>
+            <label for="comment_{{ book.id }}">Comment</label>
+            <textarea id="comment_{{ book.id }}" name="comment" placeholder="Short feedback"></textarea>
+          </div>
+          <button class="btn secondary" type="submit">Rate Book</button>
+        </form>
+      {% endif %}
+    </article>
+  {% empty %}
+    <article class="card">
+      <h3>No books found</h3>
+      <p style="margin-top: 8px;">Staff can add books from the staff console.</p>
+    </article>
+  {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="card">
+  <h1>Multi-service Bookstore Playground</h1>
+  <p style="margin-top: 10px;">
+    Dang ky customer se tu dong tao gio hang. Staff co the cap nhat gia, stock va khuyen mai cua sach.
+    Customer co the them sach vao gio, dat hang voi tuy chon thanh toan + van chuyen, va danh gia sach.
+  </p>
+</section>
+
+<section class="grid-2">
+  <article class="card">
+    <h2>Create Account</h2>
+    <p style="margin-top: 8px;">Use role <strong>customer</strong> for shopping flow, or <strong>staff</strong> for catalog management demo.</p>
+    <form method="post" action="{% url 'register_customer' %}" style="margin-top: 14px;">
+      {% csrf_token %}
+      <div>
+        <label for="name">Name</label>
+        <input id="name" name="name" required />
+      </div>
+      <div>
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" required />
+      </div>
+      <div>
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" required />
+      </div>
+      <div>
+        <label for="role">Role</label>
+        <select id="role" name="role">
+          <option value="customer" selected>customer</option>
+          <option value="staff">staff</option>
+        </select>
+      </div>
+      <button class="btn" type="submit">Register</button>
+    </form>
+  </article>
+
+  <article class="card">
+    <h2>Login</h2>
+    <p style="margin-top: 8px;">Sign in to start adding books, creating orders, and rating titles.</p>
+    <form method="post" action="{% url 'login' %}" style="margin-top: 14px;">
+      {% csrf_token %}
+      <div>
+        <label for="login_email">Email</label>
+        <input id="login_email" name="email" type="email" required />
+      </div>
+      <div>
+        <label for="login_password">Password</label>
+        <input id="login_password" name="password" type="password" required />
+      </div>
+      <button class="btn secondary" type="submit">Login</button>
+    </form>
+
+    <a href="{% url 'list_books' %}" style="display: inline-block; margin-top: 16px; color: #2f8f83; text-decoration: none; font-weight: 600;">
+      Continue as guest to view books ->
+    </a>
+  </article>
+</section>
+{% endblock %}
