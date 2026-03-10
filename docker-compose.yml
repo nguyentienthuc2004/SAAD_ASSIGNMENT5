@@ -1,0 +1,183 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: bookstore-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: "123456"
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  customer-service:
+    build:
+      context: .
+      dockerfile: customer-service/Dockerfile
+    container_name: customer-service
+    restart: unless-stopped
+    environment:
+      DJANGO_DEBUG: "1"
+      DJANGO_ALLOWED_HOSTS: "*"
+      DB_NAME: customer_db
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      CART_SERVICE_URL: http://cart-service:8000
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000 --noreload"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8001:8000"
+
+  book-service:
+    build:
+      context: .
+      dockerfile: book-service/Dockerfile
+    container_name: book-service
+    restart: unless-stopped
+    environment:
+      DJANGO_DEBUG: "1"
+      DJANGO_ALLOWED_HOSTS: "*"
+      DB_NAME: book_db
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000 --noreload"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8002:8000"
+
+  cart-service:
+    build:
+      context: .
+      dockerfile: cart-service/Dockerfile
+    container_name: cart-service
+    restart: unless-stopped
+    environment:
+      DJANGO_DEBUG: "1"
+      DJANGO_ALLOWED_HOSTS: "*"
+      DB_NAME: cart_db
+      DB_USER: root
+      DB_PASSWORD: "123456"
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      BOOK_SERVICE_URL: http://book-service:8000
+      ORDER_SERVICE_URL: http://order-service:8000
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000 --noreload"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      book-service:
+        condition: service_started
+    ports:
+      - "8003:8000"
+
+  pay-service:
+    build:
+      context: .
+      dockerfile: pay-service/Dockerfile
+    container_name: pay-service
+    restart: unless-stopped
+    environment:
+      DJANGO_DEBUG: "1"
+      DJANGO_ALLOWED_HOSTS: "*"
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000 --noreload"
+    ports:
+      - "8005:8000"
+
+  ship-service:
+    build:
+      context: .
+      dockerfile: ship-service/Dockerfile
+    container_name: ship-service
+    restart: unless-stopped
+    environment:
+      DJANGO_DEBUG: "1"
+      DJANGO_ALLOWED_HOSTS: "*"
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000 --noreload"
+    ports:
+      - "8006:8000"
+
+  order-service:
+    build:
+      context: .
+      dockerfile: order-service/Dockerfile
+    container_name: order-service
+    restart: unless-stopped
+    environment:
+      DJANGO_DEBUG: "1"
+      DJANGO_ALLOWED_HOSTS: "*"
+      CART_SERVICE_URL: http://cart-service:8000
+      PAY_SERVICE_URL: http://pay-service:8000
+      SHIP_SERVICE_URL: http://ship-service:8000
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000 --noreload"
+    depends_on:
+      cart-service:
+        condition: service_started
+      pay-service:
+        condition: service_started
+      ship-service:
+        condition: service_started
+    ports:
+      - "8004:8000"
+
+  comment-rate-service:
+    build:
+      context: .
+      dockerfile: comment-rate-service/Dockerfile
+    container_name: comment-rate-service
+    restart: unless-stopped
+    environment:
+      DJANGO_DEBUG: "1"
+      DJANGO_ALLOWED_HOSTS: "*"
+      BOOK_SERVICE_URL: http://book-service:8000
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000 --noreload"
+    depends_on:
+      book-service:
+        condition: service_started
+    ports:
+      - "8007:8000"
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    container_name: api-gateway
+    restart: unless-stopped
+    environment:
+      DJANGO_DEBUG: "1"
+      DJANGO_ALLOWED_HOSTS: "*"
+      CUSTOMER_SERVICE_URL: http://customer-service:8000
+      BOOK_SERVICE_URL: http://book-service:8000
+      CART_SERVICE_URL: http://cart-service:8000
+      ORDER_SERVICE_URL: http://order-service:8000
+      COMMENT_RATE_SERVICE_URL: http://comment-rate-service:8000
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000 --noreload"
+    depends_on:
+      customer-service:
+        condition: service_started
+      book-service:
+        condition: service_started
+      cart-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+      comment-rate-service:
+        condition: service_started
+    ports:
+      - "8000:8000"
+
+volumes:
+  mysql_data:

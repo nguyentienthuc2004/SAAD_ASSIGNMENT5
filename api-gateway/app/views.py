@@ -36,7 +36,7 @@ def _json_or_fallback(response):
 		return {"raw": response.text}
 
 
-def _service_call(method, urls, path, payload=None):
+def _service_call(method, urls, path, payload=None, headers=None):
 	last_error = "service unavailable"
 
 	for base_url in dict.fromkeys(urls):
@@ -46,6 +46,7 @@ def _service_call(method, urls, path, payload=None):
 				method,
 				url,
 				json=payload,
+				headers=headers,
 				timeout=REQUEST_TIMEOUT_SECONDS,
 			)
 			return response.status_code, _json_or_fallback(response), ""
@@ -155,6 +156,7 @@ def manage_books(request):
 
 	if request.method == "POST":
 		action = request.POST.get("action")
+		staff_headers = {"X-User-Role": (session_user.get("role") or "")}
 
 		if action == "create":
 			payload = {
@@ -169,6 +171,7 @@ def manage_books(request):
 				BOOK_SERVICE_URLS,
 				"/books/",
 				payload,
+				headers=staff_headers,
 			)
 			if status_code == 201:
 				messages.success(request, "Da them sach moi")
@@ -191,6 +194,7 @@ def manage_books(request):
 				BOOK_SERVICE_URLS,
 				f"/books/{book_id}/",
 				payload,
+				headers=staff_headers,
 			)
 			if status_code == 200:
 				messages.success(request, f"Da cap nhat sach #{book_id}")

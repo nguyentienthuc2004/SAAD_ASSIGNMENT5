@@ -7,6 +7,16 @@ from .models import Book, Rating
 from .serializers import BookSerializer, RatingSerializer
 
 
+def _require_staff(request):
+	role = (request.headers.get("X-User-Role") or "").lower()
+	if role != "staff":
+		return Response(
+			{"error": "Only staff can manage books"},
+			status=status.HTTP_403_FORBIDDEN,
+		)
+	return None
+
+
 class BookListCreate(APIView):
 	def get(self, request):
 		books = Book.objects.all().order_by("id")
@@ -14,6 +24,10 @@ class BookListCreate(APIView):
 		return Response(serializer.data)
 
 	def post(self, request):
+		staff_error = _require_staff(request)
+		if staff_error:
+			return staff_error
+
 		serializer = BookSerializer(data=request.data)
 		if not serializer.is_valid():
 			return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -34,6 +48,10 @@ class BookDetail(APIView):
 		return Response(BookSerializer(book).data)
 
 	def patch(self, request, pk):
+		staff_error = _require_staff(request)
+		if staff_error:
+			return staff_error
+
 		book = self._get_book(pk)
 		if not book:
 			return Response({"error": "Book not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -49,6 +67,10 @@ class BookDetail(APIView):
 		return self.patch(request, pk)
 
 	def delete(self, request, pk):
+		staff_error = _require_staff(request)
+		if staff_error:
+			return staff_error
+
 		book = self._get_book(pk)
 		if not book:
 			return Response({"error": "Book not found"}, status=status.HTTP_404_NOT_FOUND)

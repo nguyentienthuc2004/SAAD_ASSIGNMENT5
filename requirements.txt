@@ -1,0 +1,5 @@
+Django==5.2.12
+djangorestframework==3.16.0
+requests==2.32.3
+PyMySQL==1.1.1
+cryptography>=42,<46
